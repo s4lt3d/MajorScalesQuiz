@@ -4,29 +4,62 @@
 <meta charset="utf-8">
 <title>Major‑Scale Quiz</title>
 <style>
-  body{font-family:sans-serif;margin:0;display:flex;flex-direction:column;align-items:center;padding:1rem;gap:1rem;}
-  h1{margin:0.3rem 0;}
-  #question{font-size:1.2rem;text-align:center;min-height:2.4rem;}
-  #keyboard{position:relative;display:flex;flex-direction:column;gap:4px;touch-action:manipulation;}
-  .row{display:flex;}
-  .key{border:1px solid #333;border-radius:4px;padding:0.6rem 0;width:48px;text-align:center;user-select:none}
-  .white{background:#fafafa;}
-  .black{background:#333;color:#fff;font-size:0.75rem;width:40px;margin:0 4px;}
-  #result{height:1.8rem;font-weight:bold;}
-  @media (max-width:480px){.key{width:12vw}.black{width:10vw}}
+  body {
+    font-family: sans-serif;
+    margin: 0;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    padding: 1rem;
+    gap: 1rem;
+  }
+  h1 { margin: 0.3rem 0; }
+  #question { font-size: 1.2rem; text-align: center; min-height: 2.4rem; }
+  #keyboard {
+    position: relative;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    touch-action: manipulation;
+  }
+  .white-row {
+    display: flex;
+    position: relative;
+  }
+  .key {
+    border: 1px solid #333;
+    border-radius: 4px;
+    padding: 0.6rem 0;
+    text-align: center;
+    user-select: none;
+  }
+  .white {
+    background: #fafafa;
+    width: 48px;
+    z-index: 1;
+  }
+  .black {
+    position: absolute;
+    background: #333;
+    color: #fff;
+    width: 30px;
+    font-size: 0.7rem;
+    padding: 0.3rem 0;
+    z-index: 2;
+  }
+  #result { height: 1.8rem; font-weight: bold; }
+  @media (max-width: 480px) {
+    .white { width: 12vw; }
+    .black { width: 7vw; }
+  }
 </style>
 </head>
 <body>
   <h1>Major‑Scale Quiz</h1>
   <div id="question"></div>
-
   <div id="keyboard">
-    <!-- white keys -->
-    <div class="row" id="white-row"></div>
-    <!-- spacer so blacks sit between whites -->
-    <div class="row" id="black-row"></div>
+    <div class="white-row" id="white-row"></div>
   </div>
-
   <div id="result"></div>
 
 <script>
@@ -50,12 +83,17 @@ const scales={C:["C","D","E","F","G","A","B","C","D","E","F","G","A"],
   Cb:["Cb","Db","Eb","Fb","Gb","Ab","Bb","Cb","Db","Eb","Fb","Gb","Ab"]};
 
 const whiteNotes=["C","D","E","F","G","A","B"];
-const blackNotes=[["C#","Db"],["D#","Eb"],[],["F#","Gb"],["G#","Ab"],["A#","Bb"],[]];
+const blackKeys = [
+  {note:"C#", pos: 36}, // between C and D
+  {note:"D#", pos: 84}, // between D and E
+  {note:"F#", pos: 180}, // between F and G
+  {note:"G#", pos: 228}, // between G and A
+  {note:"A#", pos: 276}  // between A and B
+];
 
 const whiteRow=document.getElementById("white-row");
-const blackRow=document.getElementById("black-row");
 
-// build keys once
+// Add white keys
 whiteNotes.forEach(n=>{
   const btn=document.createElement("button");
   btn.textContent=n;
@@ -64,17 +102,14 @@ whiteNotes.forEach(n=>{
   whiteRow.appendChild(btn);
 });
 
-blackNotes.forEach(pair=>{
-  const holder=document.createElement("div");
-  holder.style.width="48px"; // align under its white buddy
-  if(pair.length){
-    const btn=document.createElement("button");
-    btn.innerHTML=pair.join("<br>"); // show both names
-    btn.className="key black";
-    btn.onclick=()=>guess(pair[0]);   // use sharp form for logic
-    holder.appendChild(btn);
-  }
-  blackRow.appendChild(holder);
+// Add black keys overlay
+blackKeys.forEach(k=>{
+  const btn=document.createElement("button");
+  btn.textContent=k.note;
+  btn.className="key black";
+  btn.style.left = k.pos + "px";
+  btn.onclick=()=>guess(k.note);
+  whiteRow.appendChild(btn);
 });
 
 let current;
