@@ -3,92 +3,74 @@
 <head>
 <meta charset="utf-8">
 <title>Major Scale Quiz</title>
-<meta name="viewport" content="width=device-width,initial-scale=1">
 <style>
   :root{
-    --white-w:48px;
-    --white-h:140px;
-    --black-w:28px;
-    --black-h:90px;
-    --gap:2px;
+    --white-w: 60px;   /* base widths; mobile media rule below scales them */
+    --black-w: 38px;
   }
   @media (max-width:480px){
     :root{
-      --white-w:calc(100vw / 7 - 4px); /* 7 diatonic notes */
-      --white-h:110px;
-      --black-w:calc((100vw / 7 - 4px) * 0.6);
-      --black-h:70px;
+      --white-w: 14vw;
+      --black-w: 9vw;
     }
   }
 
   body{
-    font-family:sans-serif;
     margin:0;
+    font-family:system-ui, sans-serif;
+    background:#121212;
+    color:#e0e0e0;
     display:flex;
     flex-direction:column;
     align-items:center;
-    padding:1rem;
-    gap:1rem;
+    gap:1.2rem;
+    padding:1.2rem;
   }
-  h1{margin:0.3rem 0;}
-  #question{font-size:1.2rem;text-align:center;min-height:2.4rem;}
-  #keyboard{display:flex;align-items:flex-end;touch-action:manipulation;}
-  .slot{
-    position:relative;
-    width:var(--white-w);
-    margin:0 var(--gap);
-  }
+  h1{margin:0.2rem 0 0.6rem}
+  #question{font-size:1.25rem;text-align:center;min-height:2.4rem}
+  #score{font-size:0.9rem}
+  /* keyboard layout */
+  #keyboard{display:flex;flex-direction:column;gap:8px;touch-action:manipulation}
+  .row{display:flex;justify-content:center}
   .key{
-    border:1px solid #333;
-    border-radius:4px;
-    width:100%;
+    border:1px solid #5f5f5f;border-radius:4px;
+    padding:0.8rem 0;
+    text-align:center;
     user-select:none;
-    -webkit-tap-highlight-color:transparent;
-  }
-  .white{
-    background:#fafafa;
-    height:var(--white-h);
     font-size:0.9rem;
   }
-  .black{
-    position:absolute;
-    z-index:2;
-    left:calc(100% - (var(--black-w)/2)); /* default: toward right edge */
-    transform:translateX(-50%);
-    width:var(--black-w);
-    height:var(--black-h);
-    background:#333;
-    color:#fff;
-    font-size:0.7rem;
-    line-height:1.1;
-    padding:0;
+  .white{
+    width:var(--white-w);
+    background:#2c2c2c;
+    color:#fafafa;
   }
-  /* slots where black key should be centered over the NEXT gap */
-  .slot.has-left-black .black{left:50%;} /* actual positioning done per-slot via class */
-  .slot.has-right-black .black{left:50%;}
-  /* We'll override per note below with inline style for fine placement */
-
-  #result{height:1.8rem;font-weight:bold;}
+  .black{
+    width:var(--black-w);
+    background:#444;
+    color:#fff;
+    font-size:0.75rem;
+  }
+  #result{height:1.8rem;font-weight:bold}
 </style>
 </head>
 <body>
   <h1>Major Scale Quiz</h1>
   <div id="question"></div>
+  <div id="score">Correct 0 | Wrong 0 | 0 %</div>
 
-  <div id="keyboard" aria-label="piano keyboard"></div>
+  <div id="keyboard">
+    <div class="row" id="black-row"></div>
+    <div class="row" id="white-row"></div>
+  </div>
 
   <div id="result"></div>
 
 <script>
-/* ----- quiz data ----- */
-const degreeNames=[
-  "tonic","supertonic","mediant","subdominant","dominant",
-  "submediant","leading tone","octave","ninth","tenth",
-  "eleventh","twelfth","thirteenth"
-];
+/* data */
+const degreeNames=["tonic","supertonic","mediant","subdominant","dominant",
+ "submediant","leading tone","octave","ninth","tenth","eleventh","twelfth","thirteenth"];
 
-const scales={
-  C:["C","D","E","F","G","A","B","C","D","E","F","G","A"],
+const scales={C:["C","D","E","F","G","A","B","C","D","E","F","G","A"],
   G:["G","A","B","C","D","E","F#","G","A","B","C","D","E"],
   D:["D","E","F#","G","A","B","C#","D","E","F#","G","A","B"],
   A:["A","B","C#","D","E","F#","G#","A","B","C#","D","E","F#"],
@@ -101,84 +83,78 @@ const scales={
   Ab:["Ab","Bb","C","Db","Eb","F","G","Ab","Bb","C","Db","Eb","F"],
   Db:["Db","Eb","F","Gb","Ab","Bb","C","Db","Eb","F","Gb","Ab","Bb"],
   Gb:["Gb","Ab","Bb","Cb","Db","Eb","F","Gb","Ab","Bb","Cb","Db","Eb"],
-  Cb:["Cb","Db","Eb","Fb","Gb","Ab","Bb","Cb","Db","Eb","Fb","Gb","Ab"]
-};
+  Cb:["Cb","Db","Eb","Fb","Gb","Ab","Bb","Cb","Db","Eb","Fb","Gb","Ab"]};
 
-/* ----- keyboard layout ----- */
-/* We model 7 white slots C..B. For slots that have accidentals above the gap,
-   we place a black key and nudge it left or right with a % so it visually
-   sits between the adjacent whites. Piano pattern: C#, D#, (no E#), F#, G#, A#, (no B#) */
-const keyboardSpec=[
-  {white:"C", black:["C#","Db"], offset:65}, // percent across slot width toward right
-  {white:"D", black:["D#","Eb"], offset:35}, // toward left (between C & D? actually D# between D & E)
-  {white:"E"},                               // no black
-  {white:"F", black:["F#","Gb"], offset:65},
-  {white:"G", black:["G#","Ab"], offset:50},
-  {white:"A", black:["A#","Bb"], offset:35},
-  {white:"B"}                                // no black
-];
+/* build keyboard */
+const whiteNotes=["C","D","E","F","G","A","B"];
+const blackPairs=[["C#","Db"],["D#","Eb"],[],["F#","Gb"],["G#","Ab"],["A#","Bb"],[]];
 
-const kb=document.getElementById("keyboard");
-keyboardSpec.forEach(spec=>{
-  const slot=document.createElement("div");
-  slot.className="slot";
-  // white key
-  const w=document.createElement("button");
-  w.className="key white";
-  w.textContent=spec.white;
-  w.dataset.note=spec.white;
-  w.onclick=()=>guess(spec.white);
-  slot.appendChild(w);
-  // black key if present
-  if(spec.black){
-    const b=document.createElement("button");
-    b.className="key black";
-    b.innerHTML=spec.black.join("<br>");
-    b.style.left=spec.offset+"%"; // fine tune
-    // use the sharp form for checking; either enharmonic should count as correct
-    b.dataset.note=spec.black[0];
-    b.onclick=()=>guess(spec.black[0]);
-    slot.appendChild(b);
-  }
-  kb.appendChild(slot);
+const whiteRow=document.getElementById("white-row");
+const blackRow=document.getElementById("black-row");
+
+whiteNotes.forEach(n=>{
+  const b=document.createElement("button");
+  b.className="key white";
+  b.textContent=n;
+  b.onclick=()=>guess(n);
+  whiteRow.appendChild(b);
 });
 
-/* ----- quiz engine ----- */
+blackPairs.forEach(pair=>{
+  if(pair.length){
+    const b=document.createElement("button");
+    b.className="key black";
+    b.innerHTML=pair.join("<br>");
+    b.onclick=()=>guess(pair[0]);   // use sharp spelling
+    blackRow.appendChild(b);
+  }else{
+    const spacer=document.createElement("div");
+    spacer.style.width="var(--black-w)";
+    blackRow.appendChild(spacer);
+  }
+});
+
+/* quiz logic */
 let current;
-nextQ();
+let correctCount=0, wrongCount=0;
+
+function updateScore(){
+  const total=correctCount+wrongCount;
+  const pct=total?Math.round((correctCount/total)*100):0;
+  document.getElementById("score").textContent=
+    `Correct ${correctCount} | Wrong ${wrongCount} | ${pct} %`;
+}
 
 function nextQ(){
   const keys=Object.keys(scales);
-  const scale=keys[(Math.random()*keys.length)|0];
-  const degree=(Math.random()*degreeNames.length)|0;
-  current={scale,degree};
+  const scale=keys[Math.random()*keys.length|0];
+  const deg=Math.random()*degreeNames.length|0;
+  current={scale,deg};
   document.getElementById("question").textContent=
-    `In ${scale} major, what is the ${degreeNames[degree]}?`;
+    `In ${scale} major, what is the ${degreeNames[deg]}?`;
   document.getElementById("result").textContent="";
 }
 
-function guess(noteClicked){
-  const correctNote=scales[current.scale][current.degree];
-  const isCorrect=compareNotes(noteClicked,correctNote);
-  document.getElementById("result").textContent=
-    isCorrect ? "Correct!" : `No – it’s ${correctNote}`;
+function normalize(n){
+  return n.replace(/♯/,"#").replace(/♭/,"b").toUpperCase();
+}
+
+function guess(note){
+  const ans=normalize(note);
+  const correct=normalize(scales[current.scale][current.deg]);
+  if(ans===correct){
+    correctCount++;
+    document.getElementById("result").textContent="Correct!";
+  }else{
+    wrongCount++;
+    document.getElementById("result").textContent=`No – it’s ${correct}`;
+  }
+  updateScore();
   setTimeout(nextQ,800);
 }
 
-/* Case-insensitive; treat enharmonic #/b equivalence (C# == Db, etc.) */
-function compareNotes(a,b){
-  const na=canon(a);
-  const nb=canon(b);
-  if(na===nb) return true;
-  // enharmonic map: convert flats to sharps for compare
-  const enharm={Db:"C#",Eb:"D#",Gb:"F#",Ab:"G#",Bb:"A#",
-                Cb:"B",Fb:"E",E#:"F",B#:"C"};
-  const ea=enharm[a]||enharm[strip(a)]||na;
-  const eb=enharm[b]||enharm[strip(b)]||nb;
-  return canon(ea)===canon(eb);
-}
-function canon(n){return strip(n).toUpperCase();}
-function strip(n){return n.replace(/♯/g,"#").replace(/♭/g,"b");}
+updateScore();
+nextQ();
 </script>
 </body>
 </html>
