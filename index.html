@@ -5,62 +5,40 @@
 <title>Major‑Scale Quiz</title>
 <style>
   :root{
-    --white-w: 68px;   /* default desktop/tablet */
-    --white-h: 90px;
-    --black-w: 46px;
-    --black-h: 60px;
+    --white-w: 68px;   --white-h: 90px;
+    --black-w: 46px;   --black-h: 60px;
   }
   @media (max-width:480px){
     :root{
-      --white-w: 16vw;   /* scale keys on small phones */
-      --white-h: 22vw;
-      --black-w: 11vw;
-      --black-h: 14vw;
+      --white-w: 16vw;  --white-h: 22vw;
+      --black-w: 11vw;  --black-h: 14vw;
     }
   }
 
-  /* general layout */
   body{
-    margin:0;
-    font-family:system-ui, sans-serif;
-    background:#121212;
-    color:#e0e0e0;
-    display:flex;
-    flex-direction:column;
-    align-items:center;
-    gap:1.2rem;
-    padding:1.2rem;
+    margin:0; font-family:system-ui,sans-serif;
+    background:#121212; color:#e0e0e0;
+    display:flex; flex-direction:column; align-items:center;
+    gap:1.2rem; padding:1.2rem;
   }
   h1{margin:0.2rem 0 0.6rem}
   #question{font-size:1.25rem;text-align:center;min-height:2.4rem}
   #score{font-size:0.9rem}
   #result{height:1.8rem;font-weight:bold}
 
-  /* keyboard rows */
   #keyboard{display:flex;flex-direction:column;touch-action:manipulation}
-  .row{display:flex;justify-content:center;align-items:flex-end;}
-  .black-row{margin-left:calc(var(--white-w) / 2);  /* centres blacks */ }
+  .row{display:flex;justify-content:center;align-items:flex-end}
+  .black-row{margin-left:calc(var(--white-w)/2)}
 
-  /* individual key styling */
   .key{
     border:1px solid #555;border-radius:4px;
-    user-select:none;
-    display:flex;justify-content:center;align-items:center;
-    font-size:0.9rem;
+    user-select:none; display:flex;flex-direction:column;
+    justify-content:center;align-items:center;
+    font-size:0.9rem; line-height:1.1;
   }
-  .white{
-    width:var(--white-w); height:var(--white-h);
-    background:#fefefe; color:#1a1a1a;
-  }
-  .black{
-    width:var(--black-w); height:var(--black-h);
-    background:#444; color:#fff;
-    font-size:0.75rem;
-    margin:0 auto;            /* centred inside wrapper */
-  }
-
-  /* “wrapper” cells for blacks so spacing stays correct */
-  .blk-wrap{width:var(--white-w);display:flex;justify-content:center;}
+  .white{width:var(--white-w);height:var(--white-h);background:#fefefe;color:#1a1a1a}
+  .black{width:var(--black-w);height:var(--black-h);background:#444;color:#fff;font-size:0.75rem}
+  .blk-wrap{width:var(--white-w);display:flex;justify-content:center}
 </style>
 </head>
 <body>
@@ -76,7 +54,7 @@
   <div id="result"></div>
 
 <script>
-/* ---------- data ---------- */
+/* ------------ data ------------ */
 const degreeNames=["tonic","supertonic","mediant","subdominant","dominant",
   "submediant","leading tone","octave","ninth","tenth","eleventh","twelfth","thirteenth"];
 
@@ -95,18 +73,26 @@ const scales={C:["C","D","E","F","G","A","B","C","D","E","F","G","A"],
   Gb:["Gb","Ab","Bb","Cb","Db","Eb","F","Gb","Ab","Bb","Cb","Db","Eb"],
   Cb:["Cb","Db","Eb","Fb","Gb","Ab","Bb","Cb","Db","Eb","Fb","Gb","Ab"]};
 
-/* ---------- build keyboard ---------- */
-const whiteNotes=["C","D","E","F","G","A","B"];
+/* ------------ build keyboard ------------ */
+const whiteNotes=[
+  {labels:["C","B♯"], send:"C"},
+  {labels:["D"],       send:"D"},
+  {labels:["E","F♭"], send:"E"},
+  {labels:["F","E♯"], send:"F"},
+  {labels:["G"],       send:"G"},
+  {labels:["A"],       send:"A"},
+  {labels:["B","C♭"], send:"B"}
+];
 const blackPairs=[["C#","D♭"],["D#","E♭"],[],["F#","G♭"],["G#","A♭"],["A#","B♭"],[]];
 
 const whiteRow=document.getElementById("white-row");
 const blackRow=document.getElementById("black-row");
 
-whiteNotes.forEach(n=>{
+whiteNotes.forEach(obj=>{
   const btn=document.createElement("button");
   btn.className="key white";
-  btn.textContent=n;
-  btn.onclick=()=>guess(n);
+  btn.innerHTML=obj.labels.join("<br>");
+  btn.onclick=()=>guess(obj.send);
   whiteRow.appendChild(btn);
 });
 
@@ -117,50 +103,42 @@ blackPairs.forEach(pair=>{
     const btn=document.createElement("button");
     btn.className="key black";
     btn.innerHTML=pair.join("<br>");
-    btn.onclick=()=>guess(pair[0]);  // use sharp spelling for lookup
+    btn.onclick=()=>guess(pair[0]);      // use sharp spelling for logic
     wrap.appendChild(btn);
   }
   blackRow.appendChild(wrap);
 });
 
-/* ---------- quiz logic ---------- */
-
-/* ---------- helper: note → semitone 0–11 ---------- */
+/* ------------ helpers ------------ */
 function noteToPitch(n){
-  n = n.replace(/♯/g, "#").replace(/♭/g, "b");
-  const base = {C:0,D:2,E:4,F:5,G:7,A:9,B:11};
-  let p = base[n[0].toUpperCase()];
-  for (let i=1; i<n.length; i++){
-    if (n[i] === '#') p++;
-    else if (n[i] === 'b') p--;
+  n=n.replace(/♯/g,"#").replace(/♭/g,"b");
+  const base={C:0,D:2,E:4,F:5,G:7,A:9,B:11};
+  let p=base[n[0].toUpperCase()];
+  for(let i=1;i<n.length;i++){
+    if(n[i]==="#")p++; else if(n[i]==="b")p--;
   }
-  return (p + 12) % 12;
+  return (p+12)%12;
 }
+const pretty=n=>n.replace(/#/g,"♯").replace(/b/g,"♭");
 
-/* ---------- helper: pretty print (B♭, C♯, etc.) ---------- */
-function pretty(n){
-  return n.replace(/#/g, "♯").replace(/b/g, "♭");
-}
-
-/* ---------- quiz logic ---------- */
-let current;
-let correctCount = 0, wrongCount = 0;
+/* ------------ quiz logic ------------ */
+let current, correctCount=0, wrongCount=0;
 
 function updateScore(){
-  const total = correctCount + wrongCount;
-  const pct   = total ? Math.round(correctCount / total * 100) : 0;
-  document.getElementById("score").textContent =
+  const total=correctCount+wrongCount;
+  const pct=total?Math.round(correctCount/total*100):0;
+  document.getElementById("score").textContent=
     `Correct ${correctCount} | Wrong ${wrongCount} | ${pct} %`;
 }
 
 function nextQ(){
-  const scalesList = Object.keys(scales);
-  const scale = scalesList[Math.random()*scalesList.length|0];
-  const deg   = Math.random()*degreeNames.length|0;
-  current = { scale, deg };
-  document.getElementById("question").textContent =
+  const keys=Object.keys(scales);
+  const scale=keys[Math.random()*keys.length|0];
+  const deg  =Math.random()*degreeNames.length|0;
+  current={scale,deg};
+  document.getElementById("question").textContent=
     `In ${scale} major, what is the ${degreeNames[deg]}?`;
-  document.getElementById("result").textContent = "";
+  document.getElementById("result").textContent="";
 }
 
 function guess(noteClicked){
@@ -168,19 +146,18 @@ function guess(noteClicked){
   const correctNote  = scales[current.scale][current.deg];
   const correctPitch = noteToPitch(correctNote);
 
-  if (ansPitch === correctPitch){
+  if(ansPitch===correctPitch){
     correctCount++;
-    document.getElementById("result").textContent = "Correct!";
-  } else {
+    document.getElementById("result").textContent="Correct!";
+  }else{
     wrongCount++;
-    document.getElementById("result").textContent =
-      `No – it’s ${pretty(correctNote)}`;
+    document.getElementById("result").textContent=`No – it’s ${pretty(correctNote)}`;
   }
   updateScore();
-  setTimeout(nextQ, 900);
+  setTimeout(nextQ,900);
 }
 
-/* ---------- start ---------- */
+/* ------------ start ------------ */
 updateScore();
 nextQ();
 </script>
