@@ -127,15 +127,19 @@ blackPairs.forEach(pair=>{
 
 /* ---------- helper: note → semitone 0–11 ---------- */
 function noteToPitch(n){
-  // normalise the accidentals but leave letter case alone
-  n = n.replace(/♯/g,"#").replace(/♭/g,"b");
+  n = n.replace(/♯/g, "#").replace(/♭/g, "b");
   const base = {C:0,D:2,E:4,F:5,G:7,A:9,B:11};
   let p = base[n[0].toUpperCase()];
   for (let i=1; i<n.length; i++){
     if (n[i] === '#') p++;
     else if (n[i] === 'b') p--;
   }
-  return (p + 12) % 12;      // wrap into 0–11
+  return (p + 12) % 12;
+}
+
+/* ---------- helper: pretty print (B♭, C♯, etc.) ---------- */
+function pretty(n){
+  return n.replace(/#/g, "♯").replace(/b/g, "♭");
 }
 
 /* ---------- quiz logic ---------- */
@@ -150,8 +154,8 @@ function updateScore(){
 }
 
 function nextQ(){
-  const keys  = Object.keys(scales);
-  const scale = keys[Math.random()*keys.length|0];
+  const scalesList = Object.keys(scales);
+  const scale = scalesList[Math.random()*scalesList.length|0];
   const deg   = Math.random()*degreeNames.length|0;
   current = { scale, deg };
   document.getElementById("question").textContent =
@@ -159,8 +163,8 @@ function nextQ(){
   document.getElementById("result").textContent = "";
 }
 
-function guess(note){
-  const ansPitch     = noteToPitch(note);
+function guess(noteClicked){
+  const ansPitch     = noteToPitch(noteClicked);
   const correctNote  = scales[current.scale][current.deg];
   const correctPitch = noteToPitch(correctNote);
 
@@ -169,7 +173,8 @@ function guess(note){
     document.getElementById("result").textContent = "Correct!";
   } else {
     wrongCount++;
-    document.getElementById("result").textContent = `No – it’s ${correctNote}`;
+    document.getElementById("result").textContent =
+      `No – it’s ${pretty(correctNote)}`;
   }
   updateScore();
   setTimeout(nextQ, 900);
