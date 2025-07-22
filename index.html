@@ -124,44 +124,58 @@ blackPairs.forEach(pair=>{
 });
 
 /* ---------- quiz logic ---------- */
+
+/* ---------- helper: note → semitone 0–11 ---------- */
+function noteToPitch(n){
+  // normalise the accidentals but leave letter case alone
+  n = n.replace(/♯/g,"#").replace(/♭/g,"b");
+  const base = {C:0,D:2,E:4,F:5,G:7,A:9,B:11};
+  let p = base[n[0].toUpperCase()];
+  for (let i=1; i<n.length; i++){
+    if (n[i] === '#') p++;
+    else if (n[i] === 'b') p--;
+  }
+  return (p + 12) % 12;      // wrap into 0–11
+}
+
+/* ---------- quiz logic ---------- */
 let current;
-let correctCount=0, wrongCount=0;
+let correctCount = 0, wrongCount = 0;
 
 function updateScore(){
-  const total=correctCount+wrongCount;
-  const pct=total?Math.round((correctCount/total)*100):0;
-  document.getElementById("score").textContent=
+  const total = correctCount + wrongCount;
+  const pct   = total ? Math.round(correctCount / total * 100) : 0;
+  document.getElementById("score").textContent =
     `Correct ${correctCount} | Wrong ${wrongCount} | ${pct} %`;
 }
 
 function nextQ(){
-  const keys=Object.keys(scales);
-  const scale=keys[Math.random()*keys.length|0];
-  const deg=Math.random()*degreeNames.length|0;
-  current={scale,deg};
-  document.getElementById("question").textContent=
+  const keys  = Object.keys(scales);
+  const scale = keys[Math.random()*keys.length|0];
+  const deg   = Math.random()*degreeNames.length|0;
+  current = { scale, deg };
+  document.getElementById("question").textContent =
     `In ${scale} major, what is the ${degreeNames[deg]}?`;
-  document.getElementById("result").textContent="";
-}
-
-function normalize(n){
-  return n.replace(/♯/,"#").replace(/♭/,"b").toUpperCase();
+  document.getElementById("result").textContent = "";
 }
 
 function guess(note){
-  const ans=normalize(note);
-  const correct=normalize(scales[current.scale][current.deg]);
-  if(ans===correct){
+  const ansPitch     = noteToPitch(note);
+  const correctNote  = scales[current.scale][current.deg];
+  const correctPitch = noteToPitch(correctNote);
+
+  if (ansPitch === correctPitch){
     correctCount++;
-    document.getElementById("result").textContent="Correct!";
-  }else{
+    document.getElementById("result").textContent = "Correct!";
+  } else {
     wrongCount++;
-    document.getElementById("result").textContent=`No – it’s ${correct}`;
+    document.getElementById("result").textContent = `No – it’s ${correctNote}`;
   }
   updateScore();
-  setTimeout(nextQ,900);
+  setTimeout(nextQ, 900);
 }
 
+/* ---------- start ---------- */
 updateScore();
 nextQ();
 </script>
