@@ -1,70 +1,104 @@
 <!DOCTYPE html>
 <html>
 <head>
-  <meta charset="utf-8">
-  <title>Major‑Scale Quiz</title>
-  <style>
-    body{font-family:sans-serif;padding:1rem;max-width:600px;margin:auto;}
-    h1{margin-bottom:0.5rem;}
-    #question{font-size:1.3rem;margin:1rem 0;}
-    input,button{font-size:1rem;padding:0.4rem;}
-    #result{margin-top:0.8rem;font-weight:bold;}
-  </style>
+<meta charset="utf-8">
+<title>Major‑Scale Quiz</title>
+<style>
+  body{font-family:sans-serif;margin:0;display:flex;flex-direction:column;align-items:center;padding:1rem;gap:1rem;}
+  h1{margin:0.3rem 0;}
+  #question{font-size:1.2rem;text-align:center;min-height:2.4rem;}
+  #keyboard{position:relative;display:flex;flex-direction:column;gap:4px;touch-action:manipulation;}
+  .row{display:flex;}
+  .key{border:1px solid #333;border-radius:4px;padding:0.6rem 0;width:48px;text-align:center;user-select:none}
+  .white{background:#fafafa;}
+  .black{background:#333;color:#fff;font-size:0.75rem;width:40px;margin:0 4px;}
+  #result{height:1.8rem;font-weight:bold;}
+  @media (max-width:480px){.key{width:12vw}.black{width:10vw}}
+</style>
 </head>
 <body>
   <h1>Major‑Scale Quiz</h1>
   <div id="question"></div>
-  <input id="answer" placeholder="Type your answer"/>
-  <button onclick="check()">Submit</button>
+
+  <div id="keyboard">
+    <!-- white keys -->
+    <div class="row" id="white-row"></div>
+    <!-- spacer so blacks sit between whites -->
+    <div class="row" id="black-row"></div>
+  </div>
+
   <div id="result"></div>
 
-  <script>
-    // Degree names 1–13
-    const names = ["tonic","supertonic","mediant","subdominant",
-                   "dominant","submediant","leading tone","octave",
-                   "ninth","tenth","eleventh","twelfth","thirteenth"];
+<script>
+const degreeNames=["tonic","supertonic","mediant","subdominant","dominant",
+                   "submediant","leading tone","octave","ninth","tenth",
+                   "eleventh","twelfth","thirteenth"];
 
-    // Hard‑coded note lists keeps the file tiny
-    const scales = {
-      C: ["C","D","E","F","G","A","B","C","D","E","F","G","A"],
-      G: ["G","A","B","C","D","E","F#","G","A","B","C","D","E"],
-      D: ["D","E","F#","G","A","B","C#","D","E","F#","G","A","B"],
-      A: ["A","B","C#","D","E","F#","G#","A","B","C#","D","E","F#"],
-      E: ["E","F#","G#","A","B","C#","D#","E","F#","G#","A","B","C#"],
-      B: ["B","C#","D#","E","F#","G#","A#","B","C#","D#","E","F#","G#"],
-      "F#": ["F#","G#","A#","B","C#","D#","E#","F#","G#","A#","B","C#","D#"],
-      F: ["F","G","A","Bb","C","D","E","F","G","A","Bb","C","D"],
-      Bb: ["Bb","C","D","Eb","F","G","A","Bb","C","D","Eb","F","G"],
-      Eb: ["Eb","F","G","Ab","Bb","C","D","Eb","F","G","Ab","Bb","C"],
-      Ab: ["Ab","Bb","C","Db","Eb","F","G","Ab","Bb","C","Db","Eb","F"],
-      Db: ["Db","Eb","F","Gb","Ab","Bb","C","Db","Eb","F","Gb","Ab","Bb"],
-      Gb: ["Gb","Ab","Bb","Cb","Db","Eb","F","Gb","Ab","Bb","Cb","Db","Eb"],
-      Cb: ["Cb","Db","Eb","Fb","Gb","Ab","Bb","Cb","Db","Eb","Fb","Gb","Ab"]
-    };
+const scales={C:["C","D","E","F","G","A","B","C","D","E","F","G","A"],
+  G:["G","A","B","C","D","E","F#","G","A","B","C","D","E"],
+  D:["D","E","F#","G","A","B","C#","D","E","F#","G","A","B"],
+  A:["A","B","C#","D","E","F#","G#","A","B","C#","D","E","F#"],
+  E:["E","F#","G#","A","B","C#","D#","E","F#","G#","A","B","C#"],
+  B:["B","C#","D#","E","F#","G#","A#","B","C#","D#","E","F#","G#"],
+  "F#":["F#","G#","A#","B","C#","D#","E#","F#","G#","A#","B","C#","D#"],
+  F:["F","G","A","Bb","C","D","E","F","G","A","Bb","C","D"],
+  Bb:["Bb","C","D","Eb","F","G","A","Bb","C","D","Eb","F","G"],
+  Eb:["Eb","F","G","Ab","Bb","C","D","Eb","F","G","Ab","Bb","C"],
+  Ab:["Ab","Bb","C","Db","Eb","F","G","Ab","Bb","C","Db","Eb","F"],
+  Db:["Db","Eb","F","Gb","Ab","Bb","C","Db","Eb","F","Gb","Ab","Bb"],
+  Gb:["Gb","Ab","Bb","Cb","Db","Eb","F","Gb","Ab","Bb","Cb","Db","Eb"],
+  Cb:["Cb","Db","Eb","Fb","Gb","Ab","Bb","Cb","Db","Eb","Fb","Gb","Ab"]};
 
-    let current;
-    nextQuestion();
+const whiteNotes=["C","D","E","F","G","A","B"];
+const blackNotes=[["C#","Db"],["D#","Eb"],[],["F#","Gb"],["G#","Ab"],["A#","Bb"],[]];
 
-    function nextQuestion(){
-      const keys = Object.keys(scales);
-      const scale = keys[Math.floor(Math.random()*keys.length)];
-      const degree = Math.floor(Math.random()*names.length);
-      current = {scale, degree};
-      document.getElementById("question").textContent =
-        `In ${scale} major, what is the ${names[degree]}?`;
-      document.getElementById("answer").value = "";
-      document.getElementById("result").textContent = "";
-      document.getElementById("answer").focus();
-    }
+const whiteRow=document.getElementById("white-row");
+const blackRow=document.getElementById("black-row");
 
-    function check(){
-      const guess = document.getElementById("answer").value.trim()
-                    .replace(/♯/,"#").replace(/♭/,"b").toUpperCase();
-      const correct = scales[current.scale][current.degree].toUpperCase();
-      document.getElementById("result").textContent =
-        guess === correct ? "Correct!" : `No – it is ${correct}`;
-      setTimeout(nextQuestion, 800);
-    }
-  </script>
+// build keys once
+whiteNotes.forEach(n=>{
+  const btn=document.createElement("button");
+  btn.textContent=n;
+  btn.className="key white";
+  btn.onclick=()=>guess(n);
+  whiteRow.appendChild(btn);
+});
+
+blackNotes.forEach(pair=>{
+  const holder=document.createElement("div");
+  holder.style.width="48px"; // align under its white buddy
+  if(pair.length){
+    const btn=document.createElement("button");
+    btn.innerHTML=pair.join("<br>"); // show both names
+    btn.className="key black";
+    btn.onclick=()=>guess(pair[0]);   // use sharp form for logic
+    holder.appendChild(btn);
+  }
+  blackRow.appendChild(holder);
+});
+
+let current;
+nextQ();
+
+function nextQ(){
+  const keys=Object.keys(scales);
+  const scale=keys[Math.random()*keys.length|0];
+  const degree=Math.random()*degreeNames.length|0;
+  current={scale,degree};
+  document.getElementById("question").textContent=
+    `In ${scale} major, what is the ${degreeNames[degree]}?`;
+  document.getElementById("result").textContent="";
+}
+
+function guess(note){
+  const ans=normalize(note);
+  const correct=normalize(scales[current.scale][current.degree]);
+  document.getElementById("result").textContent=
+     ans===correct?"Correct!":`No – it’s ${correct}`;
+  setTimeout(nextQ,800);
+}
+
+function normalize(n){return n.replace(/♯/,"#").replace(/♭/,"b").toUpperCase();}
+</script>
 </body>
 </html>
