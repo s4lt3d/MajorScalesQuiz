@@ -182,7 +182,7 @@ function guess(noteClicked){
     const why=explain(current.scale, current.deg);
     document.getElementById("result").textContent=`No – ${why}`;
     updateScore();
-    setTimeout(nextQ,4000);
+    setTimeout(nextQ,10000);
   }
 
 }
