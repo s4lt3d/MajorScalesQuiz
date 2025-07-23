@@ -5,8 +5,8 @@
 <title>Major‑Scale Quiz</title>
 <style>
   :root{
-    --white-w: 68px;   --white-h: 90px;
-    --black-w: 46px;   --black-h: 60px;
+    --white-w: 68px;  --white-h: 90px;
+    --black-w: 46px;  --black-h: 60px;
   }
   @media (max-width:480px){
     :root{
@@ -15,6 +15,7 @@
     }
   }
 
+  /* --------- layout & colours --------- */
   body{
     margin:0; font-family:system-ui,sans-serif;
     background:#121212; color:#e0e0e0;
@@ -24,27 +25,35 @@
   h1{margin:0.2rem 0 0.6rem}
   #question{font-size:1.25rem;text-align:center;min-height:2.4rem}
   #score{font-size:0.9rem}
-  #result{height:1.8rem;font-weight:bold}
+  #result{min-height:2.6rem;font-weight:bold;text-align:center}
 
+  /* --------- keyboard rows --------- */
   #keyboard{display:flex;flex-direction:column;touch-action:manipulation}
   .row{display:flex;justify-content:center;align-items:flex-end}
-  .black-row{margin-left:calc(var(--white-w)/2)}
+  .black-row{margin-left:calc(var(--white-w) / 2)} /* centre blacks */
 
+  /* --------- key styles --------- */
   .key{
     border:1px solid #555;border-radius:4px;
     user-select:none; display:flex;flex-direction:column;
     justify-content:center;align-items:center;
-    font-size:0.9rem; line-height:1.1;
+    line-height:1.1;
   }
-  .white{width:var(--white-w);height:var(--white-h);background:#fefefe;color:#1a1a1a}
-  .black{width:var(--black-w);height:var(--black-h);background:#444;color:#fff;font-size:0.75rem}
+  .white{
+    width:var(--white-w); height:var(--white-h);
+    background:#fefefe; color:#1a1a1a; font-size:0.9rem;
+  }
+  .black{
+    width:var(--black-w); height:var(--black-h);
+    background:#444; color:#fff; font-size:0.75rem;
+  }
   .blk-wrap{width:var(--white-w);display:flex;justify-content:center}
 </style>
 </head>
 <body>
   <h1>Major‑Scale Quiz</h1>
   <div id="question"></div>
-  <div id="score">Correct 0 | Wrong 0 | 0 %</div>
+  <div id="score">Correct 0 | Wrong 0 | 0 %</div>
 
   <div id="keyboard">
     <div class="row black-row" id="black-row"></div>
@@ -54,26 +63,68 @@
   <div id="result"></div>
 
 <script>
+/* --------- degree names --------- */
+const degreeNames=[
+  "tonic","supertonic","mediant","subdominant","dominant",
+  "submediant","leading tone","octave",
+  "ninth","tenth","eleventh","twelfth","thirteenth"
+];
 
-const degreeNames=["tonic","supertonic","mediant","subdominant","dominant",
-  "submediant","leading tone","octave","ninth","tenth","eleventh","twelfth","thirteenth"];
-
-const scales={C:["C","D","E","F","G","A","B","C","D","E","F","G","A"],
-  G:["G","A","B","C","D","E","F#","G","A","B","C","D","E"],
-  D:["D","E","F#","G","A","B","C#","D","E","F#","G","A","B"],
-  A:["A","B","C#","D","E","F#","G#","A","B","C#","D","E","F#"],
-  E:["E","F#","G#","A","B","C#","D#","E","F#","G#","A","B","C#"],
-  B:["B","C#","D#","E","F#","G#","A#","B","C#","D#","E","F#","G#"],
+/* --------- major scales (13 notes: 1‑7 + 8‑13) --------- */
+const scales={
+  C :["C","D","E","F","G","A","B","C","D","E","F","G","A"],
+  G :["G","A","B","C","D","E","F#","G","A","B","C","D","E"],
+  D :["D","E","F#","G","A","B","C#","D","E","F#","G","A","B"],
+  A :["A","B","C#","D","E","F#","G#","A","B","C#","D","E","F#"],
+  E :["E","F#","G#","A","B","C#","D#","E","F#","G#","A","B","C#"],
+  B :["B","C#","D#","E","F#","G#","A#","B","C#","D#","E","F#","G#"],
   "F#":["F#","G#","A#","B","C#","D#","E#","F#","G#","A#","B","C#","D#"],
-  F:["F","G","A","Bb","C","D","E","F","G","A","Bb","C","D"],
+  F :["F","G","A","Bb","C","D","E","F","G","A","Bb","C","D"],
   Bb:["Bb","C","D","Eb","F","G","A","Bb","C","D","Eb","F","G"],
   Eb:["Eb","F","G","Ab","Bb","C","D","Eb","F","G","Ab","Bb","C"],
   Ab:["Ab","Bb","C","Db","Eb","F","G","Ab","Bb","C","Db","Eb","F"],
   Db:["Db","Eb","F","Gb","Ab","Bb","C","Db","Eb","F","Gb","Ab","Bb"],
   Gb:["Gb","Ab","Bb","Cb","Db","Eb","F","Gb","Ab","Bb","Cb","Db","Eb"],
-  Cb:["Cb","Db","Eb","Fb","Gb","Ab","Bb","Cb","Db","Eb","Fb","Gb","Ab"]};
+  Cb:["Cb","Db","Eb","Fb","Gb","Ab","Bb","Cb","Db","Eb","Fb","Gb","Ab"]
+};
 
+/* --------- build keyboard --------- */
+const whiteNotes=[
+  {labels:["C","B♯"], send:"C"},
+  {labels:["D"],       send:"D"},
+  {labels:["E","F♭"], send:"E"},
+  {labels:["F","E♯"], send:"F"},
+  {labels:["G"],       send:"G"},
+  {labels:["A"],       send:"A"},
+  {labels:["B","C♭"], send:"B"}
+];
+const blackPairs=[["C#","D♭"],["D#","E♭"],[],["F#","G♭"],["G#","A♭"],["A#","B♭"],[]];
 
+const whiteRow=document.getElementById("white-row");
+const blackRow=document.getElementById("black-row");
+
+whiteNotes.forEach(obj=>{
+  const btn=document.createElement("button");
+  btn.className="key white";
+  btn.innerHTML=obj.labels.join("<br>");
+  btn.onclick=()=>guess(obj.send);
+  whiteRow.appendChild(btn);
+});
+
+blackPairs.forEach(pair=>{
+  const wrap=document.createElement("div");
+  wrap.className="blk-wrap";
+  if(pair.length){
+    const btn=document.createElement("button");
+    btn.className="key black";
+    btn.innerHTML=pair.join("<br>");
+    btn.onclick=()=>guess(pair[0]);   /* use sharp spelling */
+    wrap.appendChild(btn);
+  }
+  blackRow.appendChild(wrap);
+});
+
+/* --------- helpers --------- */
 function noteToPitch(n){
   n=n.replace(/♯/g,"#").replace(/♭/g,"b");
   const base={C:0,D:2,E:4,F:5,G:7,A:9,B:11};
@@ -84,21 +135,19 @@ function noteToPitch(n){
   return (p+12)%12;
 }
 const pretty=n=>n.replace(/#/g,"♯").replace(/b/g,"♭");
-
 const ordinal=n=>n===1?"1st":n===2?"2nd":n===3?"3rd":`${n}th`;
 
-
 function explain(scale, deg){
-  const simpleDeg=(deg%7)+1;               // 1‑7
-  const octaveText=deg<7?"":", an octave higher";
+  const simpleDeg=(deg%7)+1;           /* 1‑7 */
+  const octaveText=deg<7?"":" an octave higher";
   const degreeName=degreeNames[deg];
   const note=pretty(scales[scale][deg]);
-
-  return `The ${degreeName} is the ${ordinal(simpleDeg)} degree of the \
-${scale} major scale${octaveText}. The ${ordinal(simpleDeg)} degree is ${note}.`;
+  return `The ${degreeName} is the ${ordinal(simpleDeg)} degree of the ` +
+         `${scale} major scale${octaveText}. ` +
+         `The ${ordinal(simpleDeg)} degree is ${note}.`;
 }
 
-
+/* --------- quiz logic --------- */
 let current, correctCount=0, wrongCount=0;
 
 function updateScore(){
@@ -111,7 +160,7 @@ function updateScore(){
 function nextQ(){
   const keys=Object.keys(scales);
   const scale=keys[Math.random()*keys.length|0];
-  const deg=Math.random()*degreeNames.length|0;
+  const deg  =Math.random()*degreeNames.length|0;
   current={scale,deg};
   document.getElementById("question").textContent=
     `In ${scale} major, what is the ${degreeNames[deg]}?`;
@@ -128,13 +177,14 @@ function guess(noteClicked){
     document.getElementById("result").textContent="Correct!";
   }else{
     wrongCount++;
-    const why = explain(current.scale, current.deg);
+    const why=explain(current.scale, current.deg);
     document.getElementById("result").textContent=`No – ${why}`;
   }
   updateScore();
   setTimeout(nextQ,900);
 }
 
+/* start game */
 updateScore();
 nextQ();
 </script>
