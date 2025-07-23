@@ -164,7 +164,7 @@ function nextQ(){
   current={scale,deg};
   document.getElementById("question").textContent=
     `In ${scale} major, what is the ${degreeNames[deg]}?`;
-  document.getElementById("result").textContent="";
+  //document.getElementById("result").textContent="";
 }
 
 function guess(noteClicked){
@@ -175,16 +175,14 @@ function guess(noteClicked){
   if(ansPitch===correctPitch){
     correctCount++;
     document.getElementById("result").textContent="Correct!";
-    updateScore();
-    setTimeout(nextQ,900);
+
   }else{
     wrongCount++;
     const why=explain(current.scale, current.deg);
     document.getElementById("result").textContent=`No – ${why}`;
-    updateScore();
-    setTimeout(nextQ,10000);
   }
-
+  updateScore();
+  setTimeout(nextQ,200);
 }
 
 /* start game */
