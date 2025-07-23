@@ -175,13 +175,16 @@ function guess(noteClicked){
   if(ansPitch===correctPitch){
     correctCount++;
     document.getElementById("result").textContent="Correct!";
+    updateScore();
+    setTimeout(nextQ,900);
   }else{
     wrongCount++;
     const why=explain(current.scale, current.deg);
     document.getElementById("result").textContent=`No – ${why}`;
+    updateScore();
+    setTimeout(nextQ,4000);
   }
-  updateScore();
-  setTimeout(nextQ,900);
+
 }
 
 /* start game */
